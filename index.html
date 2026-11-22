@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>游戏主角类型观测簿</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<style>
+  :root{
+    --bg:#f2f0f7;
+    --bg-2:#e7e3ef;
+    --card:#ffffff;
+    --card-2:#f0edf6;
+    --line:#ddd7e8;
+    --text:#2e2a3d;
+    --text-2:#6b6380;
+    --text-3:#9a91ad;
+    --cyan:#9b86c4;
+    --violet:#7c6aa3;
+    --amber:#b08d62;
+    --rose:#c993ad;
+    --radius:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100%;
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(155,134,196,.12), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(184,168,216,.10), transparent 55%),
+      radial-gradient(900px 600px at 50% 120%, rgba(216,191,168,.08), transparent 60%);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:24px 20px 60px;min-height:100vh;display:flex;flex-direction:column;}
+
+  /* 顶部状态条 */
+  .topbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;}
+  .topbar .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);display:inline-block;margin-right:6px;}
+
+  /* 视图通用 */
+  .view{display:none;animation:fade .35s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  /* 首页 */
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--violet);border:1px solid rgba(155,134,196,.3);padding:6px 14px;border-radius:999px;letter-spacing:.15em;margin-bottom:22px;}
+  .hero h1{font-size:32px;font-weight:900;line-height:1.35;letter-spacing:.02em;}
+  .hero h1 .hl{color:var(--cyan);}
+  .hero .sub{margin-top:14px;font-size:15px;color:var(--text-2);line-height:1.8;}
+  .hero-meta{display:flex;gap:10px;margin:26px 0;flex-wrap:wrap;}
+  .chip{font-size:12.5px;color:var(--text-2);background:var(--card);border:1px solid var(--line);padding:8px 13px;border-radius:12px;}
+  .chip b{color:var(--amber);font-weight:700;}
+
+  .intro-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin:8px 0 28px;}
+  .intro-card p{font-size:14px;color:var(--text-2);line-height:1.9;}
+  .intro-card p + p{margin-top:10px;}
+
+  .btn{
+    width:100%;border:none;cursor:pointer;font-family:inherit;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));
+    color:#ffffff;font-weight:700;font-size:16px;letter-spacing:.08em;
+    padding:17px;border-radius:16px;transition:transform .15s ease,opacity .15s ease;
+    box-shadow:0 10px 26px rgba(124,106,163,.22);
+  }
+  .btn:active{transform:scale(.98);opacity:.9;}
+  .btn.ghost{background:var(--card);color:var(--text);border:1px solid var(--line);box-shadow:none;font-weight:500;}
+
+  /* 答题页 */
+  .quiz-head{margin-bottom:20px;}
+  .progress-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:10px;letter-spacing:.1em;}
+  .progress{height:6px;background:var(--bg-2);border-radius:999px;overflow:hidden;border:1px solid var(--line);}
+  .progress i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:999px;transition:width .3s ease;}
+
+  .q-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px 20px;margin-bottom:20px;}
+  .q-num{font-size:12px;color:var(--violet);letter-spacing:.2em;margin-bottom:12px;}
+  .q-text{font-size:19px;font-weight:700;line-height:1.7;}
+
+  .options{display:flex;flex-direction:column;gap:12px;}
+  .opt{
+    display:flex;align-items:flex-start;gap:14px;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:17px 16px;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .12s ease;
+  }
+  .opt:active{transform:scale(.985);}
+  .opt:hover{border-color:var(--cyan);background:var(--card-2);}
+  .opt .key{flex:none;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text-2);background:var(--bg-2);border:1px solid var(--line);}
+  .opt .label{font-size:15px;line-height:1.6;color:var(--text);}
+  .opt.picked{border-color:var(--cyan);background:rgba(155,134,196,.10);}
+  .opt.picked .key{background:var(--cyan);color:#ffffff;border-color:var(--cyan);}
+
+  /* 结果页 */
+  .result-tag{font-size:12px;color:var(--text-3);letter-spacing:.25em;text-transform:uppercase;margin-bottom:16px;text-align:center;}
+  .result-hero{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:30px 22px;text-align:center;position:relative;overflow:hidden;margin-bottom:20px;}
+  .result-hero::before{content:"";position:absolute;inset:-40% -20% auto;height:80%;background:radial-gradient(ellipse at center,rgba(155,134,196,.14),transparent 65%);pointer-events:none;}
+  .r-emoji{font-size:46px;margin-bottom:14px;position:relative;}
+  .r-name{font-size:28px;font-weight:900;letter-spacing:.03em;position:relative;}
+  .r-title{margin-top:8px;font-size:14px;color:var(--amber);letter-spacing:.2em;position:relative;}
+  .r-oneline{margin-top:16px;font-size:15px;color:var(--text-2);line-height:1.8;position:relative;}
+
+  .r-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px;position:relative;}
+  .r-tags span{font-size:12.5px;color:var(--violet);border:1px solid rgba(155,134,196,.28);padding:6px 12px;border-radius:999px;background:rgba(155,134,196,.08);}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 20px;margin-bottom:18px;}
+  .panel h3{font-size:14px;letter-spacing:.15em;color:var(--text-2);margin-bottom:18px;}
+  .r-desc{font-size:14.5px;color:var(--text-2);line-height:1.95;}
+
+  .attr{margin-bottom:15px;}
+  .attr:last-child{margin-bottom:0;}
+  .attr .attr-top{display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:7px;}
+  .attr .bar{height:8px;background:var(--bg-2);border-radius:999px;overflow:hidden;border:1px solid var(--line);}
+  .attr .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--violet),var(--cyan));}
+
+  .foot-note{text-align:center;font-size:12px;color:var(--text-3);margin-top:26px;line-height:1.8;}
+  .btn-row{display:flex;flex-direction:column;gap:12px;margin-top:24px;}
+
+  /* 答题导航 */
+  .nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px;}
+  .nav-btn{width:auto;padding:12px 20px;font-size:14px;border-radius:14px;}
+  .nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .nav-btn.next{flex:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== 视图：首页 ===== -->
+  <section id="view-home" class="view active">
+    <div class="topbar"><span><span class="dot"></span>PLAYER PROFILE v1.0</span><span>25 QUESTIONS</span></div>
+    <div class="hero">
+      <div class="badge">✦ 角色测定 · 存档读取中</div>
+      <h1>在一场游戏里，<br>你会是<span class="hl">什么类型的主角</span>？</h1>
+      <p class="sub">从新手村到最终结局，你的每个选择都会暴露本性。25 道情境题，解锁属于你的主角职业。</p>
+    </div>
+
+    <div class="hero-meta">
+      <div class="chip">题量 <b>25</b></div>
+      <div class="chip">类型 <b>9 种</b></div>
+      <div class="chip">用时 <b>约 3 分钟</b></div>
+    </div>
+
+    <div class="intro-card">
+      <p>有人天生冲在最前面，有人躲在幕后算尽全局；有人靠羁绊撑起队伍，有人习惯一个人走完全程。</p>
+      <p>没有强弱之分，只有你本能的玩法。答完题，看看你的角色卡上写着怎样的名字。</p>
+    </div>
+
+    <button class="btn" onclick="startQuiz()">开始测定 →</button>
+  </section>
+
+  <!-- ===== 视图：答题 ===== -->
+  <section id="view-quiz" class="view">
+    <div class="quiz-head">
+      <div class="progress-row">
+        <span id="progress-text">QUESTION 1 / 25</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress"><i id="progress-bar"></i></div>
+    </div>
+    <div class="q-card">
+      <div class="q-num" id="q-num">SCENE 01</div>
+      <div class="q-text" id="q-text"></div>
+    </div>
+    <div class="options" id="options"></div>
+    <div class="nav-row">
+      <button class="btn ghost nav-btn" id="prev-btn" onclick="prevQuestion()">← 上一题</button>
+    </div>
+  </section>
+
+  <!-- ===== 视图：结果 ===== -->
+  <section id="view-result" class="view">
+    <div class="result-tag">◆ YOUR CHARACTER CARD ◆</div>
+    <div class="result-hero">
+      <div class="r-emoji" id="r-emoji"></div>
+      <div class="r-name" id="r-name"></div>
+      <div class="r-title" id="r-title"></div>
+      <div class="r-oneline" id="r-oneline"></div>
+      <div class="r-tags" id="r-tags"></div>
+    </div>
+
+    <div class="panel">
+      <h3>角色档案</h3>
+      <p class="r-desc" id="r-desc"></p>
+    </div>
+
+    <div class="panel">
+      <h3>五维面板</h3>
+      <div id="attrs"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="restart()">重新测定</button>
+      <button class="btn ghost" onclick="shareResult()">保存 / 分享这张角色卡</button>
+    </div>
+    <p class="foot-note">结果仅作趣味娱乐，祝你在自己的游戏里通关顺利。</p>
+  </section>
+
+</div>
+
+<script>
+/* ================= 数据：9 种主角类型 ================= */
+const TYPES = {
+  warrior: {
+    name:"炎之勇者", title:"破阵前锋", emoji:"⚔️",
+    oneline:"永远第一个站到阵线最前方，用勇气替身边的人劈开前路。",
+    desc:"你是队伍里最让人安心的那把刀。危机来临时你很少犹豫，习惯把危险揽到自己身上，凭一腔热血和不服输的劲硬闯难关。你相信行动先于空想，越是绝境越能激起斗志。队友依赖你的担当，而你也在一次次冲锋中确认自己存在的意义。唯一要留意的，是别把所有伤口都独自扛下。",
+    tags:"热血 · 担当 · 勇往直前",
+    attrs:{power:5,wit:3,charm:4,stealth:1,heart:4}
+  },
+  strategist: {
+    name:"深谋军师", title:"幕后智将", emoji:"📜",
+    oneline:"你看得清棋盘上每一颗子，胜负在交手之前就已落定大半。",
+    desc:"你习惯先观察、再判断、最后出手。别人被情绪推着走的时候，你已经把利弊、变数和退路都算过一遍。你不靠蛮力取胜，而是用布局和时机让局面朝有利的方向倾斜。队伍里你是那个稳住节奏、提出方案的人，冷静且可靠。偶尔要提醒自己：计划之外的人心，未必都能用逻辑解释。",
+    attrs:{power:2,wit:5,charm:3,stealth:4,heart:3},
+    tags:"理智 · 布局 · 运筹帷幄"
+  },
+  wanderer: {
+    name:"孤高浪人", title:"独行旅人", emoji:"🌙",
+    oneline:"你习惯一个人上路，自由和坚韧比任何队伍都更让你踏实。",
+    desc:"你不轻易依附谁，也不喜欢被关系绑定。漫长的路你大多独自走过，练出了很强的生存能力和一副不轻易诉苦的性格。别人觉得你疏离，其实你只是把温柔收得很深。你尊重每个人的生活方式，也希望自己的选择不被干涉。同行可以，但你始终保留转身离开的权利。",
+    attrs:{power:4,wit:3,charm:2,stealth:4,heart:3},
+    tags:"独立 · 坚韧 · 来去自由"
+  },
+  guardian: {
+    name:"守护圣职者", title:"后盾之人", emoji:"🛡️",
+    oneline:"你从不抢最耀眼的位置，却总能在别人撑不住时递上一只手。",
+    desc:"你的本能是照顾和托底。队友受伤、队伍低落的时候，你最先注意到，也愿意把资源和耐心分给别人。你不追求高光时刻，看到身边的人好好的，自己就会觉得值。你的温和不是软弱，而是一种选择站在别人身后的善意。要记得，被守护的人里，也该包括你自己。",
+    attrs:{power:2,wit:3,charm:4,stealth:2,heart:5},
+    tags:"温柔 · 守护 · 治愈他人"
+  },
+  artisan: {
+    name:"机关术师", title:"创造巧匠", emoji:"⚙️",
+    oneline:"你着迷于拆解与构筑，靠一双巧手和满脑子点子打开新的路。",
+    desc:"你对世界充满好奇，喜欢研究事物是怎么运转的，也享受从零做出一样东西的过程。遇到困难，你的第一反应不是硬拼，而是想能不能造点什么、改点什么来解决。你专注、有耐心，点子常常出人意料。别人眼里的死路，在你手里可能变成一条全新的机关通道。",
+    attrs:{power:2,wit:4,charm:2,stealth:3,heart:3},
+    tags:"钻研 · 创造 · 巧思百出"
+  },
+  shadow: {
+    name:"暗影潜行者", title:"隐秘执行者", emoji:"🗡️",
+    oneline:"你擅长在暗处观察，看准时机再出手，话不多但每一步都算数。",
+    desc:"你敏锐、克制，习惯保留自己的底牌。不喜欢站在聚光灯下，更愿意先摸清局势再行动。你观察力强，能察觉别人忽略的细节，也懂得何时沉默、何时抽身。交给你的任务往往能干净利落地完成。你的谨慎是一种自保，但偶尔也可以试着让别人看见你。",
+    attrs:{power:3,wit:4,charm:1,stealth:5,heart:2},
+    tags:"敏锐 · 隐忍 · 一击即中"
+  },
+  hero: {
+    name:"天命之子", title:"被选中之人", emoji:"🌟",
+    oneline:"你身上有种天然的感召力，总能把不同的人聚到同一面旗帜下。",
+    desc:"你或许自己没察觉，但你很容易成为队伍的核心。你身上有种让人愿意追随的气质：真诚、有信念，在关键时刻敢站出来承担。你的路常常伴随着宿命感和意外的际遇，而你也在一次次选择中扛起了属于自己的责任。你的力量不只来自实力，更来自别人对你的信任。",
+    attrs:{power:4,wit:3,charm:5,stealth:2,heart:4},
+    tags:"感召 · 信念 · 命运牵绊"
+  },
+  ranger: {
+    name:"自由游侠", title:"边境冒险者", emoji:"🍃",
+    oneline:"你讨厌被固定路线困住，永远对下一片没去过的地图抱有期待。",
+    desc:"你天性好奇、随性，应变能力强，计划被打乱也不会慌。比起按部就班通关，你更想绕路看看风景、认识些有意思的人。队伍里你负责活跃气氛和寻找新的可能，乐于尝试不同玩法。你的快乐来自体验本身，而不是某个既定结局。只是别忘了，洒脱之余也给自己留一份笃定。",
+    attrs:{power:3,wit:3,charm:4,stealth:3,heart:3},
+    tags:"洒脱 · 好奇 · 随机应变"
+  },
+  sage: {
+    name:"旁观贤者", title:"行路智者", emoji:"📖",
+    oneline:"你站得稍远一点，把故事看透，再用一句话点醒身边的人。",
+    desc:"你习惯沉淀和思考，经历过不少事之后，变得通透而不急于表态。你看得懂局面背后的情绪和因果，也愿意在合适的时候给出建议。你不强求改变谁，更像队伍里那个安静的参照系。别人从你的话里获得方向，而你自己仍在不断理解这个世界。你的智慧来自阅历，也来自愿意倾听。",
+    attrs:{power:1,wit:5,charm:3,stealth:3,heart:4},
+    tags:"通透 · 洞察 · 沉淀自持"
+  }
+};
+
+/* ================= 25 道情境题 ================= */
+const QUESTIONS = [
+  {
+    text:"踏入游戏世界的第一刻，你最先走向哪里？",
+    options:[
+      {label:"战火刚起的边境，看看能帮上什么忙", score:{warrior:1}},
+      {label:"藏着古代机关的遗迹，想解开里面的谜题", score:{artisan:1}},
+      {label:"雾气弥漫的边境森林，自己探一条路", score:{ranger:1}},
+      {label:"安静的修道院，先听一听这个世界的故事", score:{sage:1}}
+    ]
+  },
+  {
+    text:"前方突然跳出一只强敌，你的第一反应是？",
+    options:[
+      {label:"拔剑正面迎上去，先挡下这一击", score:{warrior:1}},
+      {label:"不急着动手，先观察它的弱点和行动规律", score:{strategist:1}},
+      {label:"确认退路和隐蔽点，再决定怎么应对", score:{shadow:1}},
+      {label:"先把身边较弱的同伴护到身后", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"队伍为接下来的路线吵了起来，你通常会？",
+    options:[
+      {label:"站出来拍板，带着大家先往前走", score:{warrior:1}},
+      {label:"把利弊一条条列清楚，给出可行方案", score:{strategist:1}},
+      {label:"尊重每个人的想法，谁都不必勉强", score:{ranger:1}},
+      {label:"安抚情绪，先让大家冷静下来再谈", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"开箱拿到一件装备，你更偏爱哪种？",
+    options:[
+      {label:"攻击力最高的重型武器", score:{warrior:1}},
+      {label:"能增幅策略与法术的辅助法器", score:{strategist:1}},
+      {label:"轻便灵活、方便随时脱身的装束", score:{shadow:1}},
+      {label:"能抵挡伤害、保护队友的护盾", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"深夜营地，其他人都睡了，你在做什么？",
+    options:[
+      {label:"擦着武器，盘算明天的硬仗", score:{warrior:1}},
+      {label:"复盘今天的行程，修正接下来的计划", score:{strategist:1}},
+      {label:"独自走到营地边缘，守一段夜", score:{wanderer:1}},
+      {label:"翻看沿途收集的笔记和见闻", score:{sage:1}}
+    ]
+  },
+  {
+    text:"遇到一条没人走过的岔路，你会？",
+    options:[
+      {label:"直接选看起来最有挑战的那条", score:{warrior:1}},
+      {label:"先分析两条路的风险，再做选择", score:{strategist:1}},
+      {label:"凭直觉选新鲜的那条，大不了绕回来", score:{ranger:1}},
+      {label:"研究路边痕迹，判断前人走过哪里", score:{artisan:1}}
+    ]
+  },
+  {
+    text:"队友陷入低谷、提不起劲，你会？",
+    options:[
+      {label:"拉他一起先打赢一场小仗，用行动打气", score:{warrior:1}},
+      {label:"帮他理清问题，给出能一步步解决的办法", score:{strategist:1}},
+      {label:"安静陪着，等他自己缓过来", score:{wanderer:1}},
+      {label:"主动分担他的负担，让他先歇一歇", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"一个秘密任务交给你，你希望它是？",
+    options:[
+      {label:"正面攻坚，守住一个关键据点", score:{warrior:1}},
+      {label:"幕后策划，统筹整条行动线", score:{strategist:1}},
+      {label:"潜入探查，不惊动任何人拿到情报", score:{shadow:1}},
+      {label:"支援后方，保证队伍补给与安全", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"你更向往哪种结局？",
+    options:[
+      {label:"战胜最终强敌，成为被人记住的英雄", score:{hero:1}},
+      {label:"功成身退，没人知道你的名字却改变了局势", score:{shadow:1}},
+      {label:"走遍世界，把见闻都收进行囊", score:{ranger:1}},
+      {label:"看着身边的人各自安好，自己也释然放手", score:{sage:1}}
+    ]
+  },
+  {
+    text:"面对一道解不开的机关锁，你会？",
+    options:[
+      {label:"蛮力砸开，能过去就行", score:{warrior:1}},
+      {label:"画出结构，推理机关的运作原理", score:{strategist:1}},
+      {label:"拆开零件，重新组装改造", score:{artisan:1}},
+      {label:"找找有没有隐蔽的侧门或暗道", score:{shadow:1}}
+    ]
+  },
+  {
+    text:"你对同伴的态度更接近哪一种？",
+    options:[
+      {label:"认定了就一起扛，绝不丢下谁", score:{warrior:1}},
+      {label:"保持分寸，彼此独立但彼此照应", score:{wanderer:1}},
+      {label:"愿意为他们付出，多照顾一点也无妨", score:{guardian:1}},
+      {label:"靠共同的目标把大家凝聚在一起", score:{hero:1}}
+    ]
+  },
+  {
+    text:"获得一个新能力，你希望它偏向？",
+    options:[
+      {label:"大幅提升正面作战的爆发力", score:{warrior:1}},
+      {label:"看穿局势、预判对手下一步", score:{strategist:1}},
+      {label:"制造道具与机关来弥补短板", score:{artisan:1}},
+      {label:"疗愈与庇护，护住身边人的生命", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"在人群中，你通常扮演的角色是？",
+    options:[
+      {label:"发号施令、带动气氛的那个", score:{hero:1}},
+      {label:"出主意、拍板细节的那个", score:{strategist:1}},
+      {label:"默默把琐事做好的那个", score:{guardian:1}},
+      {label:"在一旁观察、很少主动表态的那个", score:{sage:1}}
+    ]
+  },
+  {
+    text:"冒险途中捡到一位受伤的陌生人，你会？",
+    options:[
+      {label:"带上他，先确保他脱离危险", score:{guardian:1}},
+      {label:"先弄清他的身份和来意再决定", score:{strategist:1}},
+      {label:"给他伤药和干粮，各自上路", score:{wanderer:1}},
+      {label:"如果他有故事，很想多听一听", score:{ranger:1}}
+    ]
+  },
+  {
+    text:"失败一次之后，你最常有的状态是？",
+    options:[
+      {label:"不服气，调整后立刻再冲一次", score:{warrior:1}},
+      {label:"复盘哪里算错了，下次避开同样的坑", score:{strategist:1}},
+      {label:"一个人消化，慢慢把状态养回来", score:{wanderer:1}},
+      {label:"问问同伴的意见，重新集结再出发", score:{hero:1}}
+    ]
+  },
+  {
+    text:"你更享受战斗中的哪个瞬间？",
+    options:[
+      {label:"与强敌正面交锋、一决胜负", score:{warrior:1}},
+      {label:"布局应验、对手落入节奏的那一刻", score:{strategist:1}},
+      {label:"隐蔽到位、一击得手无人察觉", score:{shadow:1}},
+      {label:"守住队友、让全队撑过绝境", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"如果可以自建一个据点，你会把它做成？",
+    options:[
+      {label:"坚固的前线要塞，能扛住围攻", score:{warrior:1}},
+      {label:"情报与策略的中枢指挥部", score:{strategist:1}},
+      {label:"摆满图纸与工具的工坊", score:{artisan:1}},
+      {label:"往来旅人都能歇脚的温暖驿站", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"面对难以挽回的遗憾，你倾向于？",
+    options:[
+      {label:"接受它，然后继续往前走", score:{ranger:1}},
+      {label:"想清楚遗憾的根源，化作经验", score:{sage:1}},
+      {label:"记在心里，以后用行动补回来", score:{hero:1}},
+      {label:"独自承受，不轻易对人提起", score:{wanderer:1}}
+    ]
+  },
+  {
+    text:"队伍需要有人去和陌生势力谈判，你会？",
+    options:[
+      {label:"亲自去，凭气场稳住场面", score:{hero:1}},
+      {label:"准备好筹码与方案，有条理地谈", score:{strategist:1}},
+      {label:"先暗中摸清对方底细再接触", score:{shadow:1}},
+      {label:"以诚意和善意化解对立", score:{guardian:1}}
+    ]
+  },
+  {
+    text:"你觉得自己最突出的一项特质是？",
+    options:[
+      {label:"勇气，敢在没人敢上的时候站出来", score:{warrior:1}},
+      {label:"头脑，总能想到别人忽略的办法", score:{artisan:1}},
+      {label:"共情，很容易理解别人的处境", score:{guardian:1}},
+      {label:"随性，不喜欢被条条框框限制", score:{ranger:1}}
+    ]
+  },
+  {
+    text:"终局之前，你最在意的是什么？",
+    options:[
+      {label:"有没有守住自己坚持的东西", score:{hero:1}},
+      {label:"所有布局和判断是否成立", score:{strategist:1}},
+      {label:"一路上看过的风景与遇见的人", score:{ranger:1}},
+      {label:"这段经历让自己变成了什么样的人", score:{sage:1}}
+    ]
+  },
+  {
+    text:"潜入一座戒备森严的城，你的方式是？",
+    options:[
+      {label:"找城门守卫薄弱处硬闯进去", score:{warrior:1}},
+      {label:"伪装身份，按计划混入人群", score:{shadow:1}},
+      {label:"研究城墙结构，找可利用的机关路线", score:{artisan:1}},
+      {label:"先记下巡逻规律，避开所有视线", score:{strategist:1}}
+    ]
+  },
+  {
+    text:"同伴做出一个你不认同的决定，你会？",
+    options:[
+      {label:"直接说出反对意见，摆明立场", score:{warrior:1}},
+      {label:"听完理由，再判断要不要坚持己见", score:{sage:1}},
+      {label:"尊重他的选择，同时做好兜底准备", score:{guardian:1}},
+      {label:"不强行干涉，各自承担结果", score:{wanderer:1}}
+    ]
+  },
+  {
+    text:"你理想中的冒险日常是？",
+    options:[
+      {label:"不断有新的挑战等着被攻克", score:{warrior:1}},
+      {label:"一边旅行一边收集各种有意思的事物", score:{artisan:1}},
+      {label:"和同伴一起经历大大小小的事件", score:{hero:1}},
+      {label:"安静自由，节奏完全由自己掌握", score:{wanderer:1}}
+    ]
+  },
+  {
+    text:"如果给你的角色写一句开场白，你会选？",
+    options:[
+      {label:"“这一关，我来开路。”", score:{warrior:1}},
+      {label:"“别急，让我把局面看清楚。”", score:{strategist:1}},
+      {label:"“需要帮忙的话，我在。”", score:{guardian:1}},
+      {label:"“路还长，我们慢慢走。”", score:{sage:1}}
+    ]
+  }
+];
+
+/* ================= 状态与逻辑 ================= */
+let current = 0;
+let scores = {};
+let picked = false;
+let answers = [];      // 记录每题的计分对象，用于回退扣分
+let selectedIdx = [];   // 记录每题选中的选项序号，用于回显
+
+function initScores(){
+  scores = {};
+  Object.keys(TYPES).forEach(k => scores[k] = 0);
+}
+
+function startQuiz(){
+  initScores();
+  current = 0;
+  picked = false;
+  answers = [];
+  selectedIdx = [];
+  showView("view-quiz");
+  renderQuestion();
+}
+
+function showView(id){
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function renderQuestion(){
+  picked = false;
+  const q = QUESTIONS[current];
+  const total = QUESTIONS.length;
+  document.getElementById("progress-text").textContent = "QUESTION " + (current+1) + " / " + total;
+  document.getElementById("progress-pct").textContent = Math.round((current)/total*100) + "%";
+  document.getElementById("progress-bar").style.width = (current/total*100) + "%";
+  document.getElementById("q-num").textContent = "SCENE " + String(current+1).padStart(2,"0");
+  document.getElementById("q-text").textContent = q.text;
+
+  const box = document.getElementById("options");
+  box.innerHTML = "";
+  const keys = ["A","B","C","D"];
+  const lastIdx = selectedIdx[current];
+  q.options.forEach((opt, i) => {
+    const el = document.createElement("div");
+    el.className = "opt" + (lastIdx === i ? " picked" : "");
+    el.innerHTML = '<div class="key">'+keys[i]+'</div><div class="label">'+opt.label+'</div>';
+    el.onclick = () => choose(el, opt, i);
+    box.appendChild(el);
+  });
+
+  // 第一题禁用上一题按钮
+  const prevBtn = document.getElementById("prev-btn");
+  prevBtn.disabled = current === 0;
+}
+
+function prevQuestion(){
+  if(current === 0 || picked) return;
+  // 撤销当前最后一题的计分（数组保留，便于回显与改选替换）
+  const lastScore = answers[current - 1];
+  if(lastScore){
+    Object.keys(lastScore).forEach(k => { scores[k] -= lastScore[k]; });
+  }
+  current--;
+  renderQuestion();
+}
+
+function choose(el, opt, i){
+  if(picked) return;
+  picked = true;
+  el.classList.add("picked");
+  // 若该题之前选过（退回后改选），先清掉旧分
+  if(answers.length > current){
+    const old = answers[current];
+    Object.keys(old).forEach(k => { scores[k] -= old[k]; });
+    answers[current] = opt.score;
+    selectedIdx[current] = i;
+  }else{
+    answers.push(opt.score);
+    selectedIdx.push(i);
+  }
+  // 计分
+  Object.keys(opt.score).forEach(k => { scores[k] += opt.score[k]; });
+  // 短暂停顿后进入下一题
+  setTimeout(() => {
+    current++;
+    if(current < QUESTIONS.length){
+      renderQuestion();
+    } else {
+      document.getElementById("progress-bar").style.width = "100%";
+      showResult();
+    }
+  }, 260);
+}
+
+function computeResult(){
+  let best = null, bestScore = -1;
+  // 兜底：即使全 0 也取第一个类型
+  Object.keys(TYPES).forEach(k => {
+    if(scores[k] > bestScore){ bestScore = scores[k]; best = k; }
+  });
+  return best || Object.keys(TYPES)[0];
+}
+
+function showResult(){
+  const key = computeResult();
+  const t = TYPES[key];
+  document.getElementById("r-emoji").textContent = t.emoji;
+  document.getElementById("r-name").textContent = t.name;
+  document.getElementById("r-title").textContent = t.title;
+  document.getElementById("r-oneline").textContent = t.oneline;
+  document.getElementById("r-desc").textContent = t.desc;
+
+  const tagBox = document.getElementById("r-tags");
+  tagBox.innerHTML = "";
+  t.tags.split(" · ").forEach(x => {
+    const s = document.createElement("span");
+    s.textContent = x;
+    tagBox.appendChild(s);
+  });
+
+  const attrBox = document.getElementById("attrs");
+  attrBox.innerHTML = "";
+  const attrNames = {power:"力量", wit:"智谋", charm:"魅力", stealth:"隐忍", heart:"仁心"};
+  Object.keys(attrNames).forEach(a => {
+    const val = t.attrs[a];
+    const row = document.createElement("div");
+    row.className = "attr";
+    row.innerHTML =
+      '<div class="attr-top"><span>'+attrNames[a]+'</span><span>'+val+' / 5</span></div>' +
+      '<div class="bar"><i style="width:'+(val/5*100)+'%"></i></div>';
+    attrBox.appendChild(row);
+  });
+
+  showView("view-result");
+}
+
+function restart(){
+  startQuiz();
+}
+
+function shareResult(){
+  const t = TYPES[computeResult()];
+  const text = "我的游戏主角类型是「" + t.name + " · " + t.title + "」：" + t.oneline;
+  if(navigator.share){
+    navigator.share({title:"游戏主角类型测定", text:text}).catch(()=>{});
+  }else{
+    prompt("复制这段结果分享给朋友：", text);
+  }
+}
+</script>
+</body>
+</html>
